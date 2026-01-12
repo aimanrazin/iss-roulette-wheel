@@ -27,7 +27,6 @@ export default function Roulette() {
 
     if (savedConfig && savedConfig.length > 0) {
       setConfigState(savedConfig);
-      // setPage('roulette')
     }
 
     if (savedDrawn) {
