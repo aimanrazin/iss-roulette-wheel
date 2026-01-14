@@ -1,25 +1,47 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Disc, RotateCcw } from "lucide-react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Disc, Power, RotateCcw } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getConfig, setConfig, removeConfig } from "@/lib/storage";
 import { STORAGE_KEYS } from "@/lib/constants";
+import SpinPowerMeter from "@/components/SpinPowerMeter";
+import RouletteWheel from "@/components/RouletteWheel";
+import SpinPowerButton from "@/components/SpinPowerButton";
 
 type AlphabetConfig = {
   alphabet: string;
   digits: string[];
 };
 
+/* TODO: Implement logic to remove alphabets when all combinations are drawn */
+/* TODO: Enhance the UI to show the popup of the drawn combination, make it more visually appealing */
+/* TODO: Adding sound effects when spinning, releasing and when final combination is drawn */
+
 export default function Roulette() {
   const [config, setConfigState] = useState<AlphabetConfig[]>([]);
   const [drawn, setDrawnState] = useState<string[]>([]);
 
-  const [currentAlphabet, setCurrentAlphabet] = useState<string | null>(null);
-  const [currentDigit, setCurrentDigit] = useState<string | null>(null);
-  const [isSpinning, setIsSpinning] = useState(false);
-  const [canSpinDigit, setCanSpinDigit] = useState(false);
+  const [selectedAlphabet, setSelectedAlphabet] = useState<string | null>(null);
+  const [selectedDigit, setSelectedDigit] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
+
+  const [isHoldingAlphabet, setIsHoldingAlphabet] = useState(false);
+  const [alphabetPower, setAlphabetPower] = useState(0);
+  const [alphabetSpinning, setAlphabetSpinning] = useState(false);
+  const [canSpinAlphabet, setCanSpinAlphabet] = useState(true);
+  const alphabetTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [isHoldingDigit, setIsHoldingDigit] = useState(false);
+  const [digitPower, setDigitPower] = useState(0);
+  const [digitSpinning, setDigitSpinning] = useState(false);
+  const [canSpinDigit, setCanSpinDigit] = useState(false);
+  const digitTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const allAlphabets = useMemo(
+    () => config.map((item) => item.alphabet),
+    [config]
+  );
 
   useEffect(() => {
     const savedConfig = getConfig<AlphabetConfig[]>(STORAGE_KEYS.CONFIG);
@@ -45,9 +67,10 @@ export default function Roulette() {
 
     setConfigState([]);
     setDrawnState([]);
-    setCurrentAlphabet(null);
-    setCurrentDigit(null);
+    setSelectedAlphabet(null);
+    setSelectedDigit(null);
     setShowResult(false);
+    setCanSpinAlphabet(true);
     setCanSpinDigit(false);
     navigateToSetup();
   };
@@ -56,10 +79,85 @@ export default function Roulette() {
     redirect("/setup");
   };
 
-  /* ------------------ LOGIC ------------------ */
-  const getAvailableCombinations = () => {
-    const all: { alphabet: string; digit: string }[] = [];
+  const getAvailableDigitsForAlphabet = (alphabet: string) => {
+    const alphabetConfig = config.find((c) => c.alphabet === alphabet);
+    if (!alphabetConfig) return [];
+    return alphabetConfig.digits.filter((digit) => {
+      const combo = `${alphabet}${digit}`;
+      return !drawn.includes(combo);
+    });
+  };
 
+  const startHoldingAlphabet = () => {
+    setIsHoldingAlphabet(true);
+    setAlphabetPower(0);
+
+    alphabetTimerRef.current = setInterval(() => {
+      setAlphabetPower((prev) => Math.min(prev + 1, 100));
+    }, 30);
+  };
+
+  const releaseAlphabet = () => {
+    setIsHoldingAlphabet(false);
+    alphabetTimerRef.current && clearInterval(alphabetTimerRef.current);
+
+    if (alphabetPower > 5) {
+      setAlphabetSpinning(true);
+    } else {
+      setAlphabetPower(0);
+    }
+  };
+
+  const startHoldingDigit = () => {
+    if (!canSpinDigit || digitSpinning) return;
+    setIsHoldingDigit(true);
+    setDigitPower(0);
+
+    digitTimerRef.current = setInterval(() => {
+      setDigitPower((prev) => Math.min(prev + 1, 100));
+    }, 30);
+  };
+
+  const releaseDigit = () => {
+    if (!isHoldingDigit) return;
+    setIsHoldingDigit(false);
+
+    digitTimerRef.current && clearInterval(digitTimerRef.current);
+
+    if (digitPower > 5) {
+      setDigitSpinning(true);
+    } else {
+      setDigitPower(0);
+    }
+  };
+
+  const handleWheelStop = (type: "alphabet" | "digit") => (item: string) => {
+    if (type === "alphabet") {
+      setSelectedAlphabet(item);
+      setAlphabetSpinning(false);
+      setAlphabetPower(0);
+      setCanSpinAlphabet(false);
+      setCanSpinDigit(true);
+    } else {
+      setSelectedDigit(item);
+      setDigitSpinning(false);
+      setDigitPower(0);
+      setCanSpinDigit(false);
+      setShowResult(true);
+    }
+  };
+
+  const nextDraw = () => {
+    setSelectedAlphabet(null);
+    setSelectedDigit(null);
+    setShowResult(false);
+    setCanSpinAlphabet(true);
+    setCanSpinDigit(false);
+    saveDrawn([...drawn, `${selectedAlphabet}${selectedDigit}`]);
+  };
+
+  const available = useMemo(() => {
+    const all: { alphabet: string; digit: string }[] = [];
     config.forEach((item) => {
       item.digits.forEach((digit) => {
         const combo = `${item.alphabet}${digit}`;
@@ -68,203 +166,130 @@ export default function Roulette() {
         }
       });
     });
-
     return all;
-  };
+  }, [config, drawn]);
 
-  const spinAlphabet = () => {
-    setIsSpinning(true);
-    setShowResult(false);
-    setCurrentDigit(null);
-
-    const available = getAvailableCombinations();
-    if (available.length === 0) {
-      alert("No more combinations available!");
-      setIsSpinning(false);
-      return;
-    }
-
-    let count = 0;
-    const interval = setInterval(() => {
-      const randomIndex = Math.floor(Math.random() * config.length);
-      setCurrentAlphabet(config[randomIndex].alphabet);
-      count++;
-
-      if (count > 30) {
-        clearInterval(interval);
-
-        const alphabets = [...new Set(available.map((a) => a.alphabet))];
-        const finalAlphabet =
-          alphabets[Math.floor(Math.random() * alphabets.length)];
-
-        setCurrentAlphabet(finalAlphabet);
-        setIsSpinning(false);
-        setCanSpinDigit(true);
-      }
-    }, 80);
-  };
-
-  const spinDigit = () => {
-    if (!currentAlphabet) return;
-
-    setIsSpinning(true);
-
-    const alphabetConfig = config.find((c) => c.alphabet === currentAlphabet);
-
-    if (!alphabetConfig) return;
-
-    const availableDigits = alphabetConfig.digits.filter((digit) => {
-      const combo = `${currentAlphabet}${digit}`;
-      return !drawn.includes(combo);
-    });
-
-    if (availableDigits.length === 0) {
-      alert("No available digits for this alphabet!");
-      setIsSpinning(false);
-      return;
-    }
-
-    let count = 0;
-    const interval = setInterval(() => {
-      const randomIndex = Math.floor(
-        Math.random() * alphabetConfig.digits.length
-      );
-      setCurrentDigit(alphabetConfig.digits[randomIndex]);
-      count++;
-
-      if (count > 30) {
-        clearInterval(interval);
-
-        const finalDigit =
-          availableDigits[Math.floor(Math.random() * availableDigits.length)];
-
-        setCurrentDigit(finalDigit);
-
-        const result = `${currentAlphabet}${finalDigit}`;
-        saveDrawn([...drawn, result]);
-
-        setIsSpinning(false);
-        setCanSpinDigit(false);
-        setShowResult(true);
-      }
-    }, 80);
-  };
-
-  const nextDraw = () => {
-    setCurrentAlphabet(null);
-    setCurrentDigit(null);
-    setShowResult(false);
-    setCanSpinDigit(false);
-  };
-
-  const available = getAvailableCombinations();
   const total = config.reduce((sum, item) => sum + item.digits.length, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-blue-600 mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-8 px-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-6">
+          <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-pink-500 mb-4 drop-shadow-lg">
             🎡 Lucky Draw
           </h1>
           <div className="flex justify-center gap-3 flex-wrap">
-            <span className="px-4 py-2 bg-blue-500 text-white rounded-full text-sm font-medium">
+            <span className="px-4 py-2 bg-blue-500/80 backdrop-blur text-white rounded-full text-sm font-medium shadow-lg">
               Total: {total}
             </span>
-            <span className="px-4 py-2 bg-green-500 text-white rounded-full text-sm font-medium">
+            <span className="px-4 py-2 bg-green-500/80 backdrop-blur text-white rounded-full text-sm font-medium shadow-lg">
               Remaining: {available.length}
             </span>
-            <span className="px-4 py-2 bg-red-500 text-white rounded-full text-sm font-medium">
+            <span className="px-4 py-2 bg-red-500/80 backdrop-blur text-white rounded-full text-sm font-medium shadow-lg">
               Drawn: {drawn.length}
             </span>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl p-8 mb-6">
-          <div className="space-y-12">
-            {/* Alphabet Wheel */}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-600 text-center mb-4">
-                Alphabet
-              </h2>
-              <div className="flex flex-col items-center">
-                <div
-                  className={`w-48 h-48 border-8 border-blue-500 rounded-full flex items-center justify-center bg-gray-50 transition-transform duration-100 ${
-                    isSpinning && !canSpinDigit ? "animate-spin" : ""
-                  }`}
-                >
-                  <span className="text-7xl font-bold text-blue-600">
-                    {currentAlphabet || "?"}
-                  </span>
-                </div>
-                <button
-                  onClick={spinAlphabet}
-                  disabled={isSpinning || showResult}
-                  className="mt-6 px-8 py-3 bg-blue-600 text-white rounded-xl font-semibold text-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 transition-all transform hover:scale-105"
-                >
-                  <Disc size={20} />
-                  Spin Alphabet
-                </button>
-              </div>
-            </div>
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Alphabet Wheel */}
+          <div className="relative">
+            <SpinPowerMeter
+              label="Alphabet Wheel"
+              alphabetPower={alphabetPower}
+              isHoldingAlphabet={isHoldingAlphabet}
+            />
 
-            {/* Digit Wheel */}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-600 text-center mb-4">
-                Digit
-              </h2>
-              <div className="flex flex-col items-center">
-                <div
-                  className={`w-48 h-48 border-8 rounded-full flex items-center justify-center transition-all duration-100 ${
-                    canSpinDigit
-                      ? "border-green-500 bg-gray-50"
-                      : "border-gray-300 bg-gray-100"
-                  } ${isSpinning && canSpinDigit ? "animate-spin" : ""}`}
-                >
-                  <span
-                    className={`text-7xl font-bold ${
-                      canSpinDigit ? "text-green-600" : "text-gray-400"
-                    }`}
-                  >
-                    {currentDigit || "?"}
-                  </span>
-                </div>
-                <button
-                  onClick={spinDigit}
-                  disabled={!canSpinDigit || isSpinning}
-                  className="mt-6 px-8 py-3 bg-green-600 text-white rounded-xl font-semibold text-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 transition-all transform hover:scale-105"
-                >
-                  <Disc size={20} />
-                  Spin Digit
-                </button>
-              </div>
+            <RouletteWheel
+              items={
+                allAlphabets.length > 0 ? allAlphabets : Array(4).fill("?")
+              }
+              isStartSpinning={alphabetSpinning}
+              onWheelStop={handleWheelStop("alphabet")}
+              power={alphabetPower}
+              color="blue"
+              disabled={!canSpinAlphabet && !selectedAlphabet}
+            />
+
+            <div className="text-center mt-6">
+              <SpinPowerButton
+                label="Alphabet Spin Button"
+                isHolding={isHoldingAlphabet}
+                onHoldStart={startHoldingAlphabet}
+                onHoldEnd={releaseAlphabet}
+                disabled={!canSpinAlphabet && !!selectedAlphabet}
+                color="blue"
+                texts={{
+                  holdText: "HOLD...",
+                  idleText: "PRESS & HOLD",
+                }}
+              />
             </div>
           </div>
 
-          {/* Result Display */}
-          {showResult && (
-            <div className="mt-12 text-center animate-fadeIn">
-              <h2 className="text-2xl font-semibold text-gray-600 mb-4">
-                🎉 Lucky Draw Result
-              </h2>
-              <div className="inline-block p-8 rounded-3xl bg-gradient-to-r from-yellow-400 to-orange-400 border-4 border-orange-500 shadow-xl transform scale-110">
-                <span className="text-8xl font-bold text-white drop-shadow-lg">
-                  {currentAlphabet}
-                  {currentDigit}
-                </span>
-              </div>
-              <div className="mt-8">
-                <button
-                  onClick={nextDraw}
-                  disabled={available.length === 0}
-                  className="px-8 py-3 bg-purple-600 text-white rounded-xl font-semibold text-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
-                >
-                  {available.length === 0 ? "All Done!" : "Next Draw"}
-                </button>
-              </div>
+          {/* Digit Wheel */}
+          <div className="relative">
+            <SpinPowerMeter
+              label="Digit Wheel"
+              alphabetPower={digitPower}
+              isHoldingAlphabet={isHoldingDigit}
+            />
+
+            <RouletteWheel
+              items={
+                selectedAlphabet
+                  ? getAvailableDigitsForAlphabet(selectedAlphabet)
+                  : Array(4).fill("?")
+              }
+              isStartSpinning={digitSpinning}
+              onWheelStop={handleWheelStop("digit")}
+              power={digitPower}
+              color="green"
+              disabled={!canSpinDigit && !selectedDigit}
+            />
+
+            <div className="text-center mt-6">
+              <SpinPowerButton
+                label="Digit Spin Button"
+                isHolding={isHoldingDigit}
+                onHoldStart={startHoldingDigit}
+                onHoldEnd={releaseDigit}
+                disabled={!canSpinDigit || digitSpinning}
+                isWaiting={!canSpinDigit && !selectedDigit}
+                color="green"
+                texts={{
+                  holdText: "HOLD...",
+                  idleText: "PRESS & HOLD",
+                  waitingText: "WAITING...",
+                }}
+              />
             </div>
-          )}
+          </div>
         </div>
+
+        {/* Result Display */}
+        {showResult && (
+          <div className="mt-12 text-center animate-fadeIn">
+            <h2 className="text-2xl font-semibold text-gray-600 mb-4">
+              🎉 Lucky Draw Result
+            </h2>
+            <div className="inline-block p-8 rounded-3xl bg-gradient-to-r from-yellow-400 to-orange-400 border-4 border-orange-500 shadow-xl transform scale-110">
+              <span className="text-8xl font-bold text-white drop-shadow-lg">
+                {selectedAlphabet}
+                {selectedDigit}
+              </span>
+            </div>
+            <div className="mt-8">
+              <button
+                onClick={nextDraw}
+                disabled={available.length === 0}
+                className="px-8 py-3 bg-purple-600 text-white rounded-xl font-semibold text-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
+              >
+                {available.length === 0 ? "All Done!" : "Next Draw"}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="text-center">
           <button
