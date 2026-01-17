@@ -42,6 +42,7 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
 
   const colors = colorSchemes[color];
   const segmentAngle = 360 / items.length;
+  const isSingleItem = items.length === 1;
 
   useEffect(() => {
     if (isStartSpinning && !isSpinning && !disabled) {
@@ -170,18 +171,29 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
               return (
                 <g key={index}>
                   {/* Segment background */}
-                  <path
-                    d={describeArc(
-                      200,
-                      200,
-                      200,
-                      startAngle,
-                      (index + 1) * segmentAngle
-                    )}
-                    fill={segmentColor}
-                    stroke="white"
-                    strokeWidth="2"
-                  />
+                  {isSingleItem ? (
+                    <circle
+                      cx="200"
+                      cy="200"
+                      r="200"
+                      fill={segmentColor}
+                      stroke="white"
+                      strokeWidth="2"
+                    />
+                  ) : (
+                    <path
+                      d={describeArc(
+                        200,
+                        200,
+                        200,
+                        startAngle,
+                        (index + 1) * segmentAngle
+                      )}
+                      fill={segmentColor}
+                      stroke="white"
+                      strokeWidth="2"
+                    />
+                  )}
 
                   {/* Text */}
                   <text
@@ -196,11 +208,6 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
                     fontWeight="600"
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    transform={`rotate(${middleAngle}, ${
-                      200 + Math.cos(((middleAngle - 90) * Math.PI) / 180) * 130
-                    }, ${
-                      200 + Math.sin(((middleAngle - 90) * Math.PI) / 180) * 130
-                    })`}
                   >
                     {item}
                   </text>

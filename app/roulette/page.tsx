@@ -14,7 +14,9 @@ type AlphabetConfig = {
   digits: string[];
 };
 
-/* TODO: Implement logic to remove alphabets when all combinations are drawn */
+/* TODO: Implement logic to remove alphabets when all combinations are drawn ✅ */
+/* TODO: Implement auto select digit if all combinations for that alphabet are drawn ✅ */
+/* TODO: Implement drawn history */
 /* TODO: Enhance the UI to show the popup of the drawn combination, make it more visually appealing */
 /* TODO: Adding sound effects when spinning, releasing and when final combination is drawn */
 
@@ -37,11 +39,6 @@ export default function Roulette() {
   const [digitSpinning, setDigitSpinning] = useState(false);
   const [canSpinDigit, setCanSpinDigit] = useState(false);
   const digitTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const allAlphabets = useMemo(
-    () => config.map((item) => item.alphabet),
-    [config]
-  );
 
   useEffect(() => {
     const savedConfig = getConfig<AlphabetConfig[]>(STORAGE_KEYS.CONFIG);
@@ -100,11 +97,11 @@ export default function Roulette() {
   const releaseAlphabet = () => {
     if (!isHoldingAlphabet) return;
     setIsHoldingAlphabet(false);
-    setCanSpinAlphabet(false);
     alphabetTimerRef.current && clearInterval(alphabetTimerRef.current);
 
     if (alphabetPower > 5) {
       setAlphabetSpinning(true);
+      setCanSpinAlphabet(false);
     } else {
       setAlphabetPower(0);
     }
@@ -123,12 +120,12 @@ export default function Roulette() {
   const releaseDigit = () => {
     if (!isHoldingDigit) return;
     setIsHoldingDigit(false);
-    setCanSpinDigit(false);
 
     digitTimerRef.current && clearInterval(digitTimerRef.current);
 
     if (digitPower > 5) {
       setDigitSpinning(true);
+      setCanSpinDigit(false);
     } else {
       setDigitPower(0);
     }
@@ -139,7 +136,15 @@ export default function Roulette() {
       setSelectedAlphabet(item);
       setAlphabetSpinning(false);
       setAlphabetPower(0);
-      setCanSpinDigit(true);
+
+      const availableDigits = getAvailableDigitsForAlphabet(item);
+      // check if only one digit is available, auto-select it
+      if (availableDigits.length === 1) {
+        setSelectedDigit(availableDigits[0]);
+        setShowResult(true);
+      } else {
+        setCanSpinDigit(true);
+      }
     } else {
       setSelectedDigit(item);
       setDigitSpinning(false);
@@ -157,6 +162,12 @@ export default function Roulette() {
     saveDrawn([...drawn, `${selectedAlphabet}${selectedDigit}`]);
   };
 
+  const allAlphabets = useMemo(() => {
+    return config
+      .filter((item) => getAvailableDigitsForAlphabet(item.alphabet).length > 0)
+      .map((item) => item.alphabet);
+  }, [config, drawn]);
+
   const available = useMemo(() => {
     const all: { alphabet: string; digit: string }[] = [];
     config.forEach((item) => {
@@ -171,9 +182,6 @@ export default function Roulette() {
   }, [config, drawn]);
 
   const total = config.reduce((sum, item) => sum + item.digits.length, 0);
-
-  console.log("aiman canSpinAlphabet", canSpinAlphabet);
-  console.log("aiman selectedAlphabet", selectedAlphabet);
 
   return (
     <div className="min-h-screen min-w-fit bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-8 px-4">
@@ -212,7 +220,10 @@ export default function Roulette() {
               onWheelStop={handleWheelStop("alphabet")}
               power={alphabetPower}
               color="blue"
-              disabled={!canSpinAlphabet && !!selectedAlphabet}
+              disabled={
+                allAlphabets.length === 0 ||
+                (!canSpinAlphabet && !!selectedAlphabet)
+              }
             />
 
             <div className="text-center my-6">
@@ -221,7 +232,7 @@ export default function Roulette() {
                 isHolding={isHoldingAlphabet}
                 onHoldStart={startHoldingAlphabet}
                 onHoldEnd={releaseAlphabet}
-                disabled={!canSpinAlphabet}
+                disabled={allAlphabets.length === 0 || !canSpinAlphabet}
                 color="blue"
                 texts={{
                   holdText: "HOLD...",
@@ -289,7 +300,7 @@ export default function Roulette() {
                 disabled={available.length === 0}
                 className="px-8 py-3 bg-purple-600 text-white rounded-xl font-semibold text-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
               >
-                {available.length === 0 ? "All Done!" : "Next Draw"}
+                {available.length - 1 <= 0 ? "All Done!" : "Next Draw"}
               </button>
             </div>
           </div>
@@ -298,7 +309,7 @@ export default function Roulette() {
         <div className="mt-12 text-center">
           <button
             onClick={handleReset}
-            className="px-6 py-2 border-2 border-gray-400 text-gray-700 rounded-xl font-medium hover:bg-gray-100 flex items-center gap-2 mx-auto transition-all"
+            className="px-6 py-2 border-2 border-gray-400 text-gray-300 rounded-xl font-medium hover:bg-gray-700 flex items-center gap-2 mx-auto transition-all"
           >
             <RotateCcw size={18} />
             Reset & Setup
