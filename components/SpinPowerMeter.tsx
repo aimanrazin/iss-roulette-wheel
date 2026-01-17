@@ -12,7 +12,7 @@ const SpinPowerMeter: React.FC<SpinPowerMeterProps> = ({
   isHoldingAlphabet,
 }) => {
   return (
-    <div className="text-center mb-2">
+    <div className="text-center">
       <h2 className="text-3xl font-bold text-white mb-2">{label}</h2>
       <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
         <div

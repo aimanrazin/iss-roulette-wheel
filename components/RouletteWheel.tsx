@@ -101,7 +101,7 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center p-8">
+    <div className="flex flex-col items-center justify-center p-8 pb-0">
       <div className={`relative ${disabled ? "grayscale opacity-70" : ""}`}>
         {/* Pointer */}
         <div
@@ -125,20 +125,20 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
             transform: `rotate(${rotation}deg)`,
             transition: isSpinning ? "none" : "transform 0.5s ease-out",
             pointerEvents: disabled ? "none" : "auto",
-            backgroundColor: disabled ? colorSchemes[color].primary : "transparent",
+            backgroundColor: disabled
+              ? colorSchemes[color].primary
+              : "transparent",
           }}
         >
           {/* Center decoration */}
           <div className="absolute inset-0 flex items-center justify-center z-10">
             <div
-              className={`w-16 h-16 rounded-full  border-4 border-white shadow-2xl flex items-center justify-center`}
-              style={{ backgroundColor: colors.pointer }}
+              className={`w-16 h-16 rounded-full  border-4 border-white shadow-2xl flex items-center justify-center bg-white`}
+              // style={{ backgroundColor: colors.pointer }}
             >
-              <Zap
-                className={`text-yellow-400 ${
-                  isSpinning ? "animate-pulse" : ""
-                }`}
-                size={40}
+              <img
+                src={"/images/isoftstone_logo.png"}
+                className={`${isSpinning ? "animate-pulse" : ""}`}
               />
             </div>
           </div>

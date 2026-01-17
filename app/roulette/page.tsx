@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Disc, Power, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getConfig, setConfig, removeConfig } from "@/lib/storage";
 import { STORAGE_KEYS } from "@/lib/constants";
@@ -98,7 +98,9 @@ export default function Roulette() {
   };
 
   const releaseAlphabet = () => {
+    if (!isHoldingAlphabet) return;
     setIsHoldingAlphabet(false);
+    setCanSpinAlphabet(false);
     alphabetTimerRef.current && clearInterval(alphabetTimerRef.current);
 
     if (alphabetPower > 5) {
@@ -121,6 +123,7 @@ export default function Roulette() {
   const releaseDigit = () => {
     if (!isHoldingDigit) return;
     setIsHoldingDigit(false);
+    setCanSpinDigit(false);
 
     digitTimerRef.current && clearInterval(digitTimerRef.current);
 
@@ -136,13 +139,11 @@ export default function Roulette() {
       setSelectedAlphabet(item);
       setAlphabetSpinning(false);
       setAlphabetPower(0);
-      setCanSpinAlphabet(false);
       setCanSpinDigit(true);
     } else {
       setSelectedDigit(item);
       setDigitSpinning(false);
       setDigitPower(0);
-      setCanSpinDigit(false);
       setShowResult(true);
     }
   };
@@ -171,8 +172,11 @@ export default function Roulette() {
 
   const total = config.reduce((sum, item) => sum + item.digits.length, 0);
 
+  console.log("aiman canSpinAlphabet", canSpinAlphabet);
+  console.log("aiman selectedAlphabet", selectedAlphabet);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-8 px-4">
+    <div className="min-h-screen min-w-fit bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-6">
           <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-pink-500 mb-4 drop-shadow-lg">
@@ -208,16 +212,16 @@ export default function Roulette() {
               onWheelStop={handleWheelStop("alphabet")}
               power={alphabetPower}
               color="blue"
-              disabled={!canSpinAlphabet && !selectedAlphabet}
+              disabled={!canSpinAlphabet && !!selectedAlphabet}
             />
 
-            <div className="text-center mt-6">
+            <div className="text-center my-6">
               <SpinPowerButton
                 label="Alphabet Spin Button"
                 isHolding={isHoldingAlphabet}
                 onHoldStart={startHoldingAlphabet}
                 onHoldEnd={releaseAlphabet}
-                disabled={!canSpinAlphabet && !!selectedAlphabet}
+                disabled={!canSpinAlphabet}
                 color="blue"
                 texts={{
                   holdText: "HOLD...",
@@ -245,17 +249,17 @@ export default function Roulette() {
               onWheelStop={handleWheelStop("digit")}
               power={digitPower}
               color="green"
-              disabled={!canSpinDigit && !selectedDigit}
+              disabled={!selectedAlphabet || !!selectedDigit}
             />
 
-            <div className="text-center mt-6">
+            <div className="text-center my-6">
               <SpinPowerButton
                 label="Digit Spin Button"
                 isHolding={isHoldingDigit}
                 onHoldStart={startHoldingDigit}
                 onHoldEnd={releaseDigit}
-                disabled={!canSpinDigit || digitSpinning}
-                isWaiting={!canSpinDigit && !selectedDigit}
+                disabled={!canSpinDigit}
+                isWaiting={!canSpinDigit && !selectedAlphabet}
                 color="green"
                 texts={{
                   holdText: "HOLD...",
@@ -291,7 +295,7 @@ export default function Roulette() {
           </div>
         )}
 
-        <div className="text-center">
+        <div className="mt-12 text-center">
           <button
             onClick={handleReset}
             className="px-6 py-2 border-2 border-gray-400 text-gray-700 rounded-xl font-medium hover:bg-gray-100 flex items-center gap-2 mx-auto transition-all"

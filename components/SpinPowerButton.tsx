@@ -1,22 +1,33 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { Power } from "lucide-react";
 
 interface SpinPowerButtonProps {
-  label?: string; // optional, for accessibility
+  label?: string;
   isHolding: boolean;
   onHoldStart: () => void;
   onHoldEnd: () => void;
   disabled?: boolean;
   isWaiting?: boolean;
-  color?: "blue" | "green"; // color scheme
+  color?: "blue" | "green";
   texts?: {
     holdText?: string;
     idleText?: string;
     waitingText?: string;
   };
 }
+
+const GRADIENTS = {
+  blue: {
+    normal: "bg-gradient-to-r from-blue-500 to-purple-600",
+    holding: "bg-gradient-to-r from-yellow-400 to-orange-500",
+  },
+  green: {
+    normal: "bg-gradient-to-r from-green-500 to-emerald-600",
+    holding: "bg-gradient-to-r from-yellow-400 to-orange-500",
+  },
+} as const;
 
 const SpinPowerButton: React.FC<SpinPowerButtonProps> = ({
   label,
@@ -28,20 +39,11 @@ const SpinPowerButton: React.FC<SpinPowerButtonProps> = ({
   color = "blue",
   texts = {},
 }) => {
-  const colorSchemes = {
-    blue: {
-      normalFrom: "blue-500",
-      normalTo: "purple-600",
-      holdingFrom: "yellow-400",
-      holdingTo: "orange-500",
-    },
-    green: {
-      normalFrom: "green-500",
-      normalTo: "emerald-600",
-      holdingFrom: "yellow-400",
-      holdingTo: "orange-500",
-    },
-  };
+  const {
+    holdText = "HOLD...",
+    idleText = "PRESS & HOLD",
+    waitingText = "WAITING...",
+  } = texts;
 
   return (
     <button
@@ -52,14 +54,21 @@ const SpinPowerButton: React.FC<SpinPowerButtonProps> = ({
       onTouchStart={onHoldStart}
       onTouchEnd={onHoldEnd}
       disabled={disabled}
-      className={`px-12 py-6 rounded-2xl font-bold text-xl transition-all transform shadow-2xl flex items-center justify-center gap-3 mx-auto min-w-[285px] ${
-        isHolding
-          ? `bg-gradient-to-r from-${colorSchemes[color].holdingFrom} to-${colorSchemes[color].holdingTo} scale-110 shadow-yellow-500/50`
-          : `bg-gradient-to-r from-${colorSchemes[color].normalFrom} to-${colorSchemes[color].normalTo} hover:scale-105 disabled:from-gray-600 disabled:to-gray-700 disabled:scale-100`
-      } text-white disabled:cursor-not-allowed`}
+      className={`
+        px-12 py-6 rounded-2xl font-bold text-xl
+        transition-all transform shadow-2xl
+        flex items-center justify-center gap-3
+        mx-auto min-w-[285px] select-none
+        text-white disabled:cursor-not-allowed
+        ${
+          isHolding
+            ? `${GRADIENTS[color].holding} scale-110 shadow-yellow-500/50`
+            : `${GRADIENTS[color].normal} hover:scale-105 disabled:from-gray-600 disabled:to-gray-700 disabled:scale-100`
+        }
+      `}
     >
       <Power className={isHolding ? "animate-spin" : ""} size={24} />
-      {isHolding ? texts.holdText : isWaiting ? texts.waitingText : texts.idleText}
+      {isHolding ? holdText : isWaiting ? waitingText : idleText}
     </button>
   );
 };
