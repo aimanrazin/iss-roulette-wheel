@@ -8,6 +8,7 @@ import { STORAGE_KEYS } from "@/lib/constants";
 import SpinPowerMeter from "@/components/SpinPowerMeter";
 import RouletteWheel from "@/components/RouletteWheel";
 import SpinPowerButton from "@/components/SpinPowerButton";
+import DrawnHistoryModal from "@/components/DrawnHistoryModal";
 
 type AlphabetConfig = {
   alphabet: string;
@@ -16,9 +17,10 @@ type AlphabetConfig = {
 
 /* TODO: Implement logic to remove alphabets when all combinations are drawn ✅ */
 /* TODO: Implement auto select digit if all combinations for that alphabet are drawn ✅ */
-/* TODO: Implement drawn history */
+/* TODO: Implement drawn history ✅*/
 /* TODO: Enhance the UI to show the popup of the drawn combination, make it more visually appealing */
 /* TODO: Adding sound effects when spinning, releasing and when final combination is drawn */
+/* TODO: Change the color theme */
 
 export default function Roulette() {
   const [config, setConfigState] = useState<AlphabetConfig[]>([]);
@@ -39,6 +41,8 @@ export default function Roulette() {
   const [digitSpinning, setDigitSpinning] = useState(false);
   const [canSpinDigit, setCanSpinDigit] = useState(false);
   const digitTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     const savedConfig = getConfig<AlphabetConfig[]>(STORAGE_KEYS.CONFIG);
@@ -162,6 +166,10 @@ export default function Roulette() {
     saveDrawn([...drawn, `${selectedAlphabet}${selectedDigit}`]);
   };
 
+  const handleShowHistory = () => {
+    setShowHistory(true);
+  };
+
   const allAlphabets = useMemo(() => {
     return config
       .filter((item) => getAvailableDigitsForAlphabet(item.alphabet).length > 0)
@@ -197,9 +205,12 @@ export default function Roulette() {
             <span className="px-4 py-2 bg-green-500/80 backdrop-blur text-white rounded-full text-sm font-medium shadow-lg">
               Remaining: {available.length}
             </span>
-            <span className="px-4 py-2 bg-red-500/80 backdrop-blur text-white rounded-full text-sm font-medium shadow-lg">
+            <button
+              onClick={handleShowHistory}
+              className="px-4 py-2 bg-red-500/80 backdrop-blur text-white rounded-full text-sm font-medium shadow-lg hover:bg-red-600 transition-all cursor-pointer"
+            >
               Drawn: {drawn.length}
-            </span>
+            </button>
           </div>
         </div>
 
@@ -316,6 +327,12 @@ export default function Roulette() {
           </button>
         </div>
       </div>
+
+      <DrawnHistoryModal
+        drawn={drawn}
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+      />
     </div>
   );
 }
