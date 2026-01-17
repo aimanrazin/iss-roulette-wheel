@@ -55,7 +55,7 @@ const SpinPowerButton: React.FC<SpinPowerButtonProps> = ({
       onTouchEnd={onHoldEnd}
       disabled={disabled}
       className={`
-        px-12 py-6 rounded-2xl font-bold text-xl
+        relative z-1 px-12 py-6 rounded-2xl font-bold text-xl
         transition-all transform shadow-2xl
         flex items-center justify-center gap-3
         mx-auto min-w-[285px] select-none

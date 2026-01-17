@@ -9,7 +9,10 @@ interface RouletteWheelProps {
   power: number;
   color: "blue" | "green";
   disabled?: boolean;
+  className?: string;
 }
+
+const DECELERATOR = 0.99;
 
 const RouletteWheel: React.FC<RouletteWheelProps> = ({
   items,
@@ -18,6 +21,7 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
   power,
   color,
   disabled = false,
+  className,
 }) => {
   const [rotation, setRotation] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -61,9 +65,7 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
 
   const animate = () => {
     // Deceleration factor
-    const deceleration = 0.99;
-
-    velocityRef.current *= deceleration;
+    velocityRef.current *= DECELERATOR;
     rotationRef.current += velocityRef.current;
 
     setRotation(rotationRef.current % 360);
@@ -102,7 +104,9 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center p-8 pb-0">
+    <div
+      className={`flex flex-col items-center justify-center p-8 pb-0 ${className}`}
+    >
       <div className={`relative ${disabled ? "grayscale opacity-70" : ""}`}>
         {/* Pointer */}
         <div
@@ -119,7 +123,7 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
 
         {/* Wheel */}
         <div
-          className={`relative rounded-full shadow-2xl`}
+          className={`relative rounded-full shadow-2xl z-1`}
           style={{
             width: "400px",
             height: "400px",
