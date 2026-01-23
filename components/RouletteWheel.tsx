@@ -13,6 +13,8 @@ interface RouletteWheelProps {
 }
 
 const DECELERATOR = 0.99;
+const SOUND_INITIAL_PLAYBACK_RATE = 1.5;
+const SOUND_INITIAL_VOLUME = 0.6;
 
 const RouletteWheel: React.FC<RouletteWheelProps> = ({
   items,
@@ -28,6 +30,7 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
   const animationRef = useRef<number>(null);
   const velocityRef = useRef(0);
   const rotationRef = useRef(0);
+  const spinAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const colorSchemes = {
     blue: {
@@ -49,6 +52,18 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
   const isSingleItem = items.length === 1;
 
   useEffect(() => {
+    const audio = new Audio("/sounds/wheel-spin.mp3");
+    audio.loop = true;
+    audio.volume = SOUND_INITIAL_VOLUME;
+    spinAudioRef.current = audio;
+
+    return () => {
+      audio.pause();
+      spinAudioRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     if (isStartSpinning && !isSpinning && !disabled) {
       startSpinning();
     }
@@ -60,6 +75,14 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
     velocityRef.current = power * 2;
     rotationRef.current = rotation;
 
+    const audio = spinAudioRef.current;
+    if (audio) {
+      audio.currentTime = 0;
+      audio.playbackRate = SOUND_INITIAL_PLAYBACK_RATE; // full speed
+      audio.volume = SOUND_INITIAL_VOLUME;
+      audio.play().catch(() => {});
+    }
+
     animate();
   };
 
@@ -69,6 +92,18 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
     rotationRef.current += velocityRef.current;
 
     setRotation(rotationRef.current % 360);
+
+    // 🔊 Sync sound with velocity
+    const audio = spinAudioRef.current;
+    if (audio) {
+      const speed = Math.min(velocityRef.current / (power * 2), 1);
+
+      // playbackRate: fast → slow
+      audio.playbackRate = 0.5 + speed * 1.2;
+
+      // volume: loud → soft
+      audio.volume = 0.15 + speed * 0.45;
+    }
 
     // Stop when velocity is very low
     if (velocityRef.current > 0.1) {
@@ -82,6 +117,12 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
     setIsSpinning(false);
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
+    }
+
+    const audio = spinAudioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
     }
 
     // Calculate which item the pointer is pointing to
@@ -159,7 +200,7 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
                       200,
                       200,
                       index * segmentAngle,
-                      (index + 1) * segmentAngle
+                      (index + 1) * segmentAngle,
                     )}
                   />
                 </clipPath>
@@ -191,7 +232,7 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
                         200,
                         200,
                         startAngle,
-                        (index + 1) * segmentAngle
+                        (index + 1) * segmentAngle,
                       )}
                       fill={segmentColor}
                       stroke="white"

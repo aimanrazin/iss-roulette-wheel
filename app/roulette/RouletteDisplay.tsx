@@ -9,6 +9,9 @@ import { motion, Variants } from "framer-motion";
 import RouletteWheel from "@/components/RouletteWheel";
 import SpinPowerMeter from "@/components/SpinPowerMeter";
 import SpinPowerButton from "@/components/SpinPowerButton";
+import { a } from "framer-motion/client";
+
+const METER_SPEED = 0.65;
 
 interface RouletteDisplayProps {
   config: {
@@ -25,6 +28,9 @@ interface RouletteDisplayProps {
   setCanSpinAlphabet: (canSpin: boolean) => void;
   canSpinDigit: boolean;
   setCanSpinDigit: (canSpin: boolean) => void;
+  playAudio: (
+    key: "burst" | "spinSuccess" | "merge" | "winnerIntro" | "winnerOutro",
+  ) => void;
 }
 
 const RouletteDisplay: React.FC<RouletteDisplayProps> = ({
@@ -39,6 +45,7 @@ const RouletteDisplay: React.FC<RouletteDisplayProps> = ({
   setCanSpinAlphabet,
   canSpinDigit,
   setCanSpinDigit,
+  playAudio,
 }) => {
   const [isHoldingAlphabet, setIsHoldingAlphabet] = useState(false);
   const [alphabetPower, setAlphabetPower] = useState(0);
@@ -81,7 +88,7 @@ const RouletteDisplay: React.FC<RouletteDisplayProps> = ({
     let power = 0;
 
     const tick = () => {
-      power = Math.min(power + 1, 100);
+      power = Math.min(power + METER_SPEED, 100);
       setAlphabetPower(power);
       if (power < 100) {
         alphabetFrameRef.current = requestAnimationFrame(tick);
@@ -98,6 +105,7 @@ const RouletteDisplay: React.FC<RouletteDisplayProps> = ({
     }
 
     if (alphabetPower > 5) {
+      playAudio("burst");
       setAlphabetSpinning(true);
       setCanSpinAlphabet(false);
     } else {
@@ -112,7 +120,7 @@ const RouletteDisplay: React.FC<RouletteDisplayProps> = ({
     let power = 0;
 
     const tick = () => {
-      power = Math.min(power + 1, 100);
+      power = Math.min(power + METER_SPEED, 100);
       setDigitPower(power);
       if (power < 100) {
         digitFrameRef.current = requestAnimationFrame(tick);
@@ -129,6 +137,7 @@ const RouletteDisplay: React.FC<RouletteDisplayProps> = ({
     }
 
     if (digitPower > 5) {
+      playAudio("burst");
       setDigitSpinning(true);
       setCanSpinDigit(false);
     } else {
@@ -137,6 +146,7 @@ const RouletteDisplay: React.FC<RouletteDisplayProps> = ({
   }, [digitPower, isHoldingDigit]);
 
   const handleWheelStop = (type: "alphabet" | "digit") => (item: string) => {
+    playAudio("spinSuccess");
     if (type === "alphabet") {
       setSelectedAlphabet(item);
       setAlphabetSpinning(false);
@@ -155,6 +165,7 @@ const RouletteDisplay: React.FC<RouletteDisplayProps> = ({
       setDigitSpinning(false);
       setDigitPower(0);
       setTimeout(() => {
+        playAudio("merge");
         setIsMerging(true);
       }, 800);
       setTimeout(() => {
