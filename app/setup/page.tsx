@@ -26,6 +26,9 @@ const SetupPage = () => {
     const saved = getConfig<AlphabetConfig[]>(STORAGE_KEYS.CONFIG);
     if (saved) {
       setConfigState(saved);
+      if (saved.length > 0) {
+        router.push("/roulette");
+      }
     }
   }, []);
 
@@ -329,6 +332,6 @@ const SetupPage = () => {
       </div>
     </div>
   );
-}
+};
 
 export default SetupPage;

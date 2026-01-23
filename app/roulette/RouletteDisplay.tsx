@@ -1,4 +1,10 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { motion, Variants } from "framer-motion";
 import RouletteWheel from "@/components/RouletteWheel";
 import SpinPowerMeter from "@/components/SpinPowerMeter";
@@ -47,28 +53,49 @@ const RouletteDisplay: React.FC<RouletteDisplayProps> = ({
   const alphabetTimerRef = useRef<NodeJS.Timeout | null>(null);
   const digitTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const getAvailableDigitsForAlphabet = (alphabet: string) => {
-    const alphabetConfig = config.find((c) => c.alphabet === alphabet);
-    if (!alphabetConfig) return [];
-    return alphabetConfig.digits.filter((digit) => {
-      const combo = `${alphabet}${digit}`;
-      return !drawn.includes(combo);
-    });
-  };
+  const alphabetFrameRef = useRef<number | null>(null);
+  const digitFrameRef = useRef<number | null>(null);
 
-  const startHoldingAlphabet = () => {
+  useEffect(() => {
+    return () => {
+      if (alphabetTimerRef.current) clearInterval(alphabetTimerRef.current);
+      if (digitTimerRef.current) clearInterval(digitTimerRef.current);
+    };
+  }, []);
+
+  const getAvailableDigitsForAlphabet = useCallback(
+    (alphabet: string) => {
+      const alphabetConfig = config.find((c) => c.alphabet === alphabet);
+      if (!alphabetConfig) return [];
+      return alphabetConfig.digits.filter((digit) => {
+        const combo = `${alphabet}${digit}`;
+        return !drawn.includes(combo);
+      });
+    },
+    [config, drawn],
+  );
+
+  const startHoldingAlphabet = useCallback(() => {
     setIsHoldingAlphabet(true);
     setAlphabetPower(0);
+    let power = 0;
 
-    alphabetTimerRef.current = setInterval(() => {
-      setAlphabetPower((prev) => Math.min(prev + 1, 100));
-    }, 30);
-  };
+    const tick = () => {
+      power = Math.min(power + 1, 100);
+      setAlphabetPower(power);
+      if (power < 100) {
+        alphabetFrameRef.current = requestAnimationFrame(tick);
+      }
+    };
+    alphabetFrameRef.current = requestAnimationFrame(tick);
+  }, []);
 
-  const releaseAlphabet = () => {
+  const releaseAlphabet = useCallback(() => {
     if (!isHoldingAlphabet) return;
     setIsHoldingAlphabet(false);
-    alphabetTimerRef.current && clearInterval(alphabetTimerRef.current);
+    if (alphabetFrameRef.current) {
+      cancelAnimationFrame(alphabetFrameRef.current);
+    }
 
     if (alphabetPower > 5) {
       setAlphabetSpinning(true);
@@ -76,23 +103,30 @@ const RouletteDisplay: React.FC<RouletteDisplayProps> = ({
     } else {
       setAlphabetPower(0);
     }
-  };
+  }, [alphabetPower, isHoldingAlphabet]);
 
-  const startHoldingDigit = () => {
+  const startHoldingDigit = useCallback(() => {
     if (!canSpinDigit || digitSpinning) return;
     setIsHoldingDigit(true);
     setDigitPower(0);
+    let power = 0;
 
-    digitTimerRef.current = setInterval(() => {
-      setDigitPower((prev) => Math.min(prev + 1, 100));
-    }, 30);
-  };
+    const tick = () => {
+      power = Math.min(power + 1, 100);
+      setDigitPower(power);
+      if (power < 100) {
+        digitFrameRef.current = requestAnimationFrame(tick);
+      }
+    };
+    digitFrameRef.current = requestAnimationFrame(tick);
+  }, [canSpinDigit, digitSpinning]);
 
-  const releaseDigit = () => {
+  const releaseDigit = useCallback(() => {
     if (!isHoldingDigit) return;
     setIsHoldingDigit(false);
-
-    digitTimerRef.current && clearInterval(digitTimerRef.current);
+    if (digitFrameRef.current) {
+      cancelAnimationFrame(digitFrameRef.current);
+    }
 
     if (digitPower > 5) {
       setDigitSpinning(true);
@@ -100,7 +134,7 @@ const RouletteDisplay: React.FC<RouletteDisplayProps> = ({
     } else {
       setDigitPower(0);
     }
-  };
+  }, [digitPower, isHoldingDigit]);
 
   const handleWheelStop = (type: "alphabet" | "digit") => (item: string) => {
     if (type === "alphabet") {
@@ -156,8 +190,8 @@ const RouletteDisplay: React.FC<RouletteDisplayProps> = ({
       <div className="relative">
         <SpinPowerMeter
           label="Alphabet Wheel"
-          alphabetPower={alphabetPower}
-          isHoldingAlphabet={isHoldingAlphabet}
+          power={alphabetPower}
+          isHolding={isHoldingAlphabet}
         />
 
         <div className="relative">
@@ -219,8 +253,8 @@ const RouletteDisplay: React.FC<RouletteDisplayProps> = ({
       <div className="relative">
         <SpinPowerMeter
           label="Digit Wheel"
-          alphabetPower={digitPower}
-          isHoldingAlphabet={isHoldingDigit}
+          power={digitPower}
+          isHolding={isHoldingDigit}
         />
 
         <div className="relative">

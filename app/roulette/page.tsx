@@ -109,8 +109,8 @@ export default function Roulette() {
       <div className="min-h-screen min-w-fit bg-gradient-to-br max-h-screen from-slate-900 via-purple-900 to-slate-900 p-4 flex justify-center items-center">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-6">
-            <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-pink-500 mb-4 drop-shadow-lg">
-              🎡 Lucky Draw
+            <h1 className="text-5xl/15 font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-pink-500 mb-4 drop-shadow-lg">
+              {showResult ? "🎉 Congratulations!" : "🎡 Isoftstone Spin to Win Magic"}
             </h1>
             <div className="flex justify-center gap-3 flex-wrap">
               <span className="px-4 py-2 bg-blue-500/80 backdrop-blur text-white rounded-full text-sm font-medium shadow-lg">

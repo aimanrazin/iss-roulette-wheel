@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import ReactConfetti from "react-confetti";
 
 interface ResultDisplayProps {
@@ -8,20 +8,35 @@ interface ResultDisplayProps {
   available: string[];
 }
 
+const titles = [
+  "✨ Bibbidi-Bobbidi-Win!",
+  "🌟 The Enchanted Draw Result",
+  "🏰 A Wish Come True",
+  "🎉 A Touch of Magic Revealed",
+  "✨ Let the Magic Shine",
+  "🎉 A Spark of Magic",
+  "🌟 Your Magical Moment",
+  "🌟 The Magic Moment Is Here",
+];
+
 const ResultDisplay: React.FC<ResultDisplayProps> = ({
   selectedAlphabet,
   selectedDigit,
   nextDraw,
   available,
 }) => {
+  const randomTitle = useMemo(() => {
+    return titles[Math.floor(Math.random() * titles.length)];
+  }, []);
+
   return (
     <>
       <div className="mt-12 text-center animate-fadeIn">
-        <h2 className="text-2xl font-semibold text-gray-200 mb-4">
-          🎉 Lucky Draw Result
+        <h2 className="text-2xl font-semibold text-gray-200 mb-9">
+          {randomTitle}
         </h2>
-        <div className="inline-block p-8 rounded-3xl bg-gradient-to-r from-yellow-400 to-orange-400 border-4 border-orange-500 shadow-xl transform scale-110">
-          <span className="text-8xl font-bold text-white drop-shadow-lg">
+        <div className="inline-block p-8 rounded-3xl bg-gradient-to-r from-yellow-400 to-orange-400 border-4 border-orange-500 shadow-xl transform scale-125 mt-3 mb-4">
+          <span className="text-9xl font-bold text-white drop-shadow-lg">
             {selectedAlphabet}
             {selectedDigit}
           </span>

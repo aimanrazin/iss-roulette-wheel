@@ -73,4 +73,4 @@ const SpinPowerButton: React.FC<SpinPowerButtonProps> = ({
   );
 };
 
-export default SpinPowerButton;
+export default React.memo(SpinPowerButton);

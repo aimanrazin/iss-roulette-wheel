@@ -232,4 +232,4 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
   );
 };
 
-export default RouletteWheel;
+export default React.memo(RouletteWheel);
