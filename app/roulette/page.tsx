@@ -195,7 +195,7 @@ export default function Roulette() {
             <h1 className="text-5xl/15 font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-pink-500 mb-4 drop-shadow-lg">
               {showResult
                 ? "🎉 Congratulations!"
-                : "🎡 Isoftstone Spin to Win Magic"}
+                : "iSoftStone Spin to Win Magic"}
             </h1>
             <div className="flex justify-center gap-3 flex-wrap">
               <span className="px-4 py-2 bg-blue-500/80 backdrop-blur text-white rounded-full text-sm font-medium shadow-lg">

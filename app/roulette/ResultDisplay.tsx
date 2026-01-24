@@ -17,6 +17,16 @@ const titles = [
   "🎉 A Spark of Magic",
   "🌟 Your Magical Moment",
   "🌟 The Magic Moment Is Here",
+  "✨ The Magic Is In!",
+  "🌟 A Dash of Wonder",
+  "🎉 Something Magical Appears",
+  "✨ The Magic Touch",
+  "🏰 A Magical Surprise",
+  "🌟 Let the Wonder Begin",
+  "🎉 A Moment Made Magical",
+  "🏰 The Magic Has Chosen",
+  "✨ A Magical Reveal",
+  "🎉 Magic in the Air",
 ];
 
 const ResultDisplay: React.FC<ResultDisplayProps> = ({
